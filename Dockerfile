@@ -1,4 +1,4 @@
-FROM postgres
+FROM postgres:13
 
 RUN apt-get update && apt-get install unzip && apt-get -y install curl
 
@@ -8,4 +8,13 @@ ENV SNOWSQL_DEST=/bin
 ENV SNOWSQL_LOGIN_SHELL=.bash_profile
 RUN bash snowsql-1.2.9-linux_x86_64.bash
 
-COPY docker-entrypoint-initdb.d /docker-entrypoint-initdb.d
+ARG SF_ACCOUNT
+ARG SF_PWD
+ARG SF_UNAME
+ENV SNOWSQL_ACCOUNT=$SF_ACCOUNT
+ENV SNOWSQL_USER=$SF_UNAME
+ENV SNOWSQL_DATABASE=ADW
+ENV SNOWSQL_SCHEMA=ADW_PL
+ENV SNOWSQL_PWD=$SF_PWD
+
+RUN snowsql -q "select get_ddl('table', 'CUSTOMER_DIM');" -o output_format=plain -o header=false -o timing=false -o friendly=false | sed -E 's/or replace //' > /docker-entrypoint-initdb.d/01_customer-dim.sql
